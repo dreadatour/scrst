@@ -61,7 +61,7 @@ Just for fun (проект выходного дня).
 
 ### Добавляем действие в Dropzone 3
 
-1. Ставим ![Dropzone 3](https://aptonic.com/dropzone3/)
+1. Ставим https://aptonic.com/dropzone3/
 2. Устанавливаем действие двойным кликом по "screenshot.dzbundle".
 3. Готово. Теперь можно перетаскивать любые картинки картинки в Dropzone.
 
