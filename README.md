@@ -29,7 +29,7 @@ Just for fun (проект выходного дня).
 
 	Выделяем область экрана. Скриншот должен залиться на сервер AWS S3 и должен появиться нотифай об успешно загруженном скриншоте:
 
-	![Notify](https://raw.githubusercontent.com/dreadatour/s5/master/notify.png)
+	![Notify](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/notify.png)
 
 
 ### Создаём сервис и назначаем горячие клавиши
@@ -38,23 +38,23 @@ Just for fun (проект выходного дня).
 
 2. Выбираем шаблон "Service":
 
-	![Template](https://raw.githubusercontent.com/dreadatour/s5/master/choose-template.png)
+	![Template](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/choose-template.png)
 
 3. Добавляем действие "Run Shell Script":
 
-	![Add action](https://raw.githubusercontent.com/dreadatour/s5/master/add-action.png)
+	![Add action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/add-action.png)
 
 4. Создаём действие:
 
-	![Create action](https://raw.githubusercontent.com/dreadatour/s5/master/create-action.png)
+	![Create action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/create-action.png)
 
 5. Сохраняем:
 
-	![Save action](https://raw.githubusercontent.com/dreadatour/s5/master/save-action.png)
+	![Save action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/save-action.png)
 
 6. Назначаем сочетание клавиш:
 
-	![Shortcut](https://raw.githubusercontent.com/dreadatour/s5/master/set-shortcut.png)
+	![Shortcut](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/set-shortcut.png)
 
 7. Готово. Нажимаем Cmd+Shift+5 - делаем скриншот, который загружается в AWS S3.
 
