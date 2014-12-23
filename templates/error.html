@@ -1,0 +1,5 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ code }}{% endblock %}
+
+{% block content %}{% if code == 404 %}<strong>404</strong><br>страница не найдена{% else %}<strong>Ошибка</strong><br>что-то пошло не так{% endif %}{% endblock %}

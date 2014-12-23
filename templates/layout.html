@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>{% block title %}{% endblock %}</title>
+<link rel="shortcut icon" href="/favicon.ico">
+<style>
+html{height:100%}
+body{height:100%;margin:0;padding:0}
+div{height:100%;width:100%;margin:0;padding:0}
+img{display:block;margin:0 auto}
+.a{display:table}
+.b{display:table-cell;vertical-align:middle;text-align:center}
+</style>
+</head>
+<body><div class="a"><div class="b">{% block content %}{% endblock %}</div></div>{% block javascript %}{% endblock %}</body>
+</html>

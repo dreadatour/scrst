@@ -1,0 +1,65 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ filename }}{% endblock %}
+
+{% block content %}<img src="{{ url }}"{% if width and height %} width="{{ width }}" height="{{ height }}"{% endif %}>{% endblock %}
+
+{% block javascript %}<script>
+var img = document.getElementsByTagName('img')[0];
+var img_width = {% if width %}{{ width }}{% else %}img.width{% endif %};
+var img_height = {% if height %}{{ height }}{% else %}img.height{% endif %};
+var img_ratio = img_width / img_height;
+var zoom = false;
+var resize_timeout = null;
+
+function fit_to_screen() {
+	var win_width = window.innerWidth;
+	var win_height = window.innerHeight;
+	if (img_height > win_height || img_width > win_width) {
+		var win_ratio = win_width / win_height;
+		if (img_ratio > win_ratio) {
+			img.width = win_width;
+			img.height = win_width / img_ratio;
+		} else {
+			img.height = win_height;
+			img.width = win_height * img_ratio;
+		}
+		zoom = true;
+		img.style.cursor = '-webkit-zoom-in';
+		img.onclick = zoom_toggle;
+	} else {
+		if (img.width != img_width || img.height != img_height) {
+			img.width = img_width;
+			img.height = img_height;
+		}
+		zoom = false;
+		img.style.cursor = 'default';
+		img.onclick = null;
+	}
+}
+fit_to_screen();
+
+function zoom_toggle() {
+	if (zoom) {
+		img.width = img_width;
+		img.height = img_height;
+		if (img_height > window.innerHeight || img_width > window.innerWidth) {
+			img.style.cursor = '-webkit-zoom-out';
+			img.onclick = zoom_toggle;
+		} else {
+			img.style.cursor = 'default';
+			img.onclick = null;
+		}
+		zoom = false;
+	} else {
+		fit_to_screen();
+	}
+}
+
+window.onresize = function() {
+	if (resize_timeout !== null) {
+		clearTimeout(resize_timeout);
+	}
+	resize_timeout = setTimeout(fit_to_screen, 300);
+}
+</script>{% endblock %}

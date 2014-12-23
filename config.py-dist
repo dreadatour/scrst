@@ -1,0 +1,3 @@
+DEBUG = False
+AWS_S3_DOMAIN = 's3.amazonaws.com'
+AWS_S3_PATH = '/{bucket_name}/'

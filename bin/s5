@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+source /usr/local/etc/s5.conf
+
+if [ -z "$AWS_S3_BUCKET_NAME" ]; then
+    echo "Error: AWS_S3_BUCKET_NAME is not set"
+    exit 1
+fi
+if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+    echo "Error: AWS_ACCESS_KEY_ID is not set"
+    exit 1
+fi
+if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "Error: AWS_SECRET_ACCESS_KEY is not set"
+    exit 1
+fi
+if [ -z "$S5_URL" ]; then
+    echo "Error: S5_URL is not set"
+    exit 1
+fi
+
+unique_filename=
+generate_unique_filename() {
+    unique_filename=$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n1).png
+    /usr/local/bin/s3cmd info -q s3://$AWS_S3_BUCKET_NAME/$unique_filename > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        generate_unique_filename
+    fi
+}
+
+
+if [ $# -eq 0 ]; then
+    screenshot_file=`mktemp -t screenshot` || exit 1
+    rm -f $screenshot_file
+    screencapture -i $screenshot_file
+else
+    screenshot_file=$1
+fi
+
+if [ -e $screenshot_file ]; then
+    generate_unique_filename
+
+    dpiWidth=$(/usr/bin/sips "$screenshot_file" -g dpiWidth | awk '/:/ {print $2}')
+    dpiHeight=$(/usr/bin/sips "$screenshot_file" -g dpiHeight | awk '/:/ {print $2}')
+    pixelWidth=$(/usr/bin/sips "$screenshot_file" -g pixelWidth | awk '/:/ {print $2}')
+    pixelHeight=$(/usr/bin/sips "$screenshot_file" -g pixelHeight | awk '/:/ {print $2}')
+    width=$(echo "$pixelWidth * 72 / $dpiWidth" | bc)
+    height=$(echo "$pixelHeight * 72 / $dpiHeight" | bc)
+
+    /usr/local/bin/s3cmd put -q -m image/png --no-preserve \
+        --add-header="x-amz-meta-width: $width" \
+        --add-header="x-amz-meta-height: $height" \
+        --add-header="x-amz-meta-dpi-width: $dpiWidth" \
+        --add-header="x-amz-meta-dpi-height: $dpiHeight" \
+        --add-header="x-amz-meta-pixel-width: $pixelWidth" \
+        --add-header="x-amz-meta-pixel-height: $pixelHeight" \
+        --access_key=$AWS_ACCESS_KEY_ID \
+        --secret_key=$AWS_SECRET_ACCESS_KEY \
+        $screenshot_file s3://$AWS_S3_BUCKET_NAME/$unique_filename
+
+    url=$S5_URL${unique_filename%.*}
+
+    echo $url
+    echo -n $url | pbcopy
+
+    if [ $# -eq 0 ]; then
+        title='Screenshot uploaded'
+    else
+        title='File uploaded'
+    fi
+
+    /usr/local/bin/terminal-notifier -title "$title" -message "$url" -sound "default" -open "$url" -contentImage $screenshot_file
+
+    if [ $# -eq 0 ]; then
+        rm -f $screenshot_file
+    fi
+fi
