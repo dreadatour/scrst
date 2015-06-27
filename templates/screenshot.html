@@ -1,6 +1,15 @@
 {% extends 'layout.html' %}
 
-{% block title %}{{ filename }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block opengraph %}
+<meta property="og:title" content="{{ title }}" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="{{ request.url }}" />
+<meta property="og:image" content="{{ url }}" />
+<meta property="og:image:width" content="{{ width }}" />
+<meta property="og:image:height" content="{{ height }}" />
+{% endblock %}
 
 {% block content %}<img src="{{ url }}"{% if width and height %} width="{{ width }}" height="{{ height }}"{% endif %}>{% endblock %}
 

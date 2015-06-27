@@ -58,6 +58,8 @@ if [ -e $screenshot_file ]; then
         --secret_key=$AWS_SECRET_ACCESS_KEY \
         $screenshot_file s3://$AWS_S3_BUCKET_NAME/$unique_filename
 
+    echo s3://$AWS_S3_BUCKET_NAME/$unique_filename > /var/tmp/s5-last-upload
+
     url=$S5_URL${unique_filename%.*}
 
     echo $url

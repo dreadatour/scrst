@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+[[ -f /var/tmp/s5-last-upload ]] || exit 1
+S3_LINK=$(cat /var/tmp/s5-last-upload)
+
+DEFAULT_NAME=$(basename $S3_LINK)
+
+SCREENSHOT_NAME=$(osascript -e "try
+	tell app \"SystemUIServer\"
+		set title to text returned of (display dialog \"Enter screenshot title:\" default answer \"$DEFAULT_NAME\")
+	end
+end
+activate app (path to frontmost application as text)
+title" | tr '\r' ' ')
+[[ -z "$SCREENSHOT_NAME" ]] && exit
+
+source /usr/local/etc/s5.conf
+
+/usr/local/bin/s3cmd modify --add-header="x-amz-meta-title: $SCREENSHOT_NAME" $S3_LINK

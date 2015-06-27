@@ -47,12 +47,15 @@ def screenshot(filename):
     img_width = headers.get('x-amz-meta-width')
     img_height = headers.get('x-amz-meta-height')
 
+    img_title = headers.get('x-amz-meta-title', filename)
+
     return render_template(
         'screenshot.html',
         filename=filename,
         url=img_url,
         width=img_width,
-        height=img_height
+        height=img_height,
+        title=img_title
     )
 
 
