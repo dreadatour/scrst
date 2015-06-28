@@ -311,7 +311,7 @@ def load_info_from_file():
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Screenshot uploader')
+    parser = argparse.ArgumentParser(description='Screenshot uploader.')
     parser.add_argument('-c', '--config', default='/usr/local/etc/scrst.cfg',
                         help='config file, default: /usr/local/etc/scrst.cfg')
     parser.add_argument('-s', '--setup', action='store_true',
@@ -325,7 +325,7 @@ if __name__ == '__main__':
                         help='do not show OS X notify')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='verbose output')
-    parser.add_argument('image_file', nargs='?')
+    parser.add_argument('image_file', nargs='?', help='image file to upload')
     args = parser.parse_args()
 
     if args.setup:
