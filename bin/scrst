@@ -1,0 +1,399 @@
+#!/usr/bin/env python
+"""
+Upload screenshot to AWS S3.
+"""
+from __future__ import print_function
+
+import argparse
+import os
+import pickle
+import random
+import string
+import subprocess
+import sys
+import tempfile
+import urllib
+import uuid
+
+try:
+    import configparser
+except ImportError:  # Python 2
+    import ConfigParser as configparser
+
+from boto.exception import BotoClientError, BotoServerError
+from boto.s3.bucket import Bucket
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+from PIL import Image
+
+
+# temporary file to store info about last uploaded screenshot
+TEMP_FILE = '/var/tmp/scrst-last-uploaded-screenshot'
+
+
+def setup(filename):
+    """
+    Ask user for configuration and save it into config file.
+    """
+    print("Amazon S3 configuration")
+    print("-----------------------")
+    aws = {}
+    aws['access_key_id'] = raw_input("Access key ID: ")
+    aws['secret_access_key'] = raw_input("Secret access key: ")
+    aws['s3_bucket_name'] = raw_input("Bucket name: ")
+
+    print()
+    print("ScrSt configuration")
+    print("-------------------")
+    scrst = {}
+    scrst['url'] = raw_input("Enter URL for uploaded screenshots: ")
+
+    while scrst.get('long_names') not in ('true', 'false'):
+        scrst['long_names'] = raw_input(
+            "Use long names for taken screenshots (true/false): "
+        ).lower()
+
+    while scrst.get('keep_extension') not in ('true', 'false'):
+        scrst['keep_extension'] = raw_input(
+            "Keep file extension un result URL (true/false): "
+        ).lower()
+
+    config = configparser.ConfigParser()
+
+    config.add_section('aws')
+    for option in ('access_key_id', 'secret_access_key', 's3_bucket_name'):
+        config.set('aws', option, aws[option])
+
+    config.add_section('scrst')
+    for option in ('url', 'long_names', 'keep_extension'):
+        config.set('scrst', option, scrst[option])
+
+    try:
+        with open(filename, 'w') as config_file:
+            config.write(config_file)
+    except IOError:
+        sys.exit("ERROR: can't write config to file {0}".format(filename))
+
+
+def parse_config(filename):
+    """
+    Parse config file.
+    """
+    if not os.path.isfile(filename):
+        sys.exit("ERROR: config file {0} id not found".format(filename))
+
+    config = configparser.ConfigParser()
+    try:
+        config.read(filename)
+    except configparser.Error:
+        sys.exit("ERROR: can't parse config file {0}".format(filename))
+
+    result = {}
+
+    # Amazon S3 options
+    if not config.has_section('aws'):
+        sys.exit(
+            "ERROR: config file {0} have no section 'aws'".format(filename)
+        )
+
+    for option in ('s3_bucket_name', 'access_key_id', 'secret_access_key'):
+        if not config.has_option('aws', option):
+            sys.exit(
+                "ERROR: config file {0} have no option '{1}'"
+                " in 'aws' section".format(filename, option)
+            )
+        result[option] = config.get('aws', option)
+
+    # screenshot uploader options
+    if not config.has_section('scrst'):
+        sys.exit("ERROR: config file have no section 'scrst': {0}".format(
+            filename
+        ))
+
+    if not config.has_option('scrst', 'url'):
+        sys.exit(
+            "ERROR: config file {0} have no option 'url'"
+            " in 'scrst' section".format(filename)
+        )
+    result['url'] = config.get('scrst', 'url')
+
+    result['long_names'] = bool(
+        config.has_option('scrst', 'long_names') and
+        config.get('scrst', 'long_names').lower() in ('true', '1')
+    )
+
+    result['keep_extension'] = bool(
+        config.has_option('scrst', 'keep_extension') and
+        config.get('scrst', 'keep_extension').lower() in ('true', '1')
+    )
+
+    return result
+
+
+def take_screenshot(image_file=None):
+    """
+    Check if image_file is exists, create new and take a screenshot if not.
+    """
+    if not image_file:
+        # this is not very very supersafe, but why not?
+        image_file = tempfile.mktemp(prefix='scrst-', suffix='.png')
+
+        subprocess.call(['screencapture', '-i', image_file])
+
+        if not os.path.isfile(image_file):
+            sys.exit("Screenshot capture was cancelled")
+    else:
+        if not os.path.isfile(image_file):
+            sys.exit("ERROR: image file {0} is not found".format(image_file))
+
+    return image_file
+
+
+def get_image_meta(image_file):
+    """
+    Read metadata (width, height, DPI) from image file.
+    """
+    image = Image.open(image_file)
+
+    result = {}
+
+    result['pixel-width'], result['pixel-height'] = image.size
+
+    # this code is for retina images on non-retina displays
+    image_dpi = image.info.get('dpi')
+    if image_dpi and len(image_dpi) == 2:
+        result['dpi-width'], result['dpi-height'] = image_dpi
+    else:
+        result['dpi-width'], result['dpi-height'] = (72, 72)
+
+    result['width'] = result['pixel-width'] * 72 / result['dpi-width']
+    result['height'] = result['pixel-height'] * 72 / result['dpi-height']
+
+    return result
+
+
+def ask_user_for_title(default_title=''):
+    """
+    Ask user for screenshot title with Apple Script display dialog.
+    """
+    dialog_text = 'Enter screenshot new title:'
+    cmd = """try
+    tell app "SystemUIServer"
+    set title to text returned of (display dialog "{0}" default answer "{1}")
+    end
+    end
+    activate app (path to frontmost application as text)
+    title""".format(dialog_text, default_title)
+
+    proc = subprocess.Popen(['osascript', '-e', cmd], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    proc.wait()
+
+    return proc.communicate()[0].strip()
+
+
+def random_filename(long_name=False):
+    """
+    Generate random filename with `symbols` length.
+    """
+    if long_name:
+        filename = uuid.uuid4()
+    else:
+        sym = string.ascii_lowercase + string.ascii_uppercase + string.digits
+        filename = ''.join(random.SystemRandom().choice(sym) for _ in range(6))
+    return '{0}.png'.format(filename)
+
+
+def upload_image(image_file, image_meta, args, config):
+    """
+    Upload image to AWS S3.
+    """
+    conn = S3Connection(config['access_key_id'], config['secret_access_key'])
+    bucket = Bucket(connection=conn, name=config['s3_bucket_name'])
+
+    filename = random_filename(long_name=config['long_names'])
+
+    # check if random filename is already busy and generate new if so
+    retry_count = 0
+    while bucket.get_key(filename):
+        retry_count += 1
+        if retry_count >= 5:
+            sys.exit("ERROR: can't generate unique filename")
+        filename = random_filename(long_name=config['long_names'])
+
+    if args.ask_title:
+        image_title = ask_user_for_title(filename)
+    elif args.title:
+        image_title = args.title
+    else:
+        image_title = filename
+
+    key = Key(bucket)
+    key.key = filename
+    # set image metadata to read it later on website
+    for param, value in image_meta.items():
+        key.set_metadata(param, value)
+    key.set_metadata('title', urllib.quote(image_title))
+    key.set_contents_from_filename(image_file)
+
+    return filename, image_title
+
+
+def update_image_title(filename, config):
+    """
+    Update image title in AWS S3.
+    """
+    conn = S3Connection(config['access_key_id'], config['secret_access_key'])
+    bucket = Bucket(connection=conn, name=config['s3_bucket_name'])
+    key = bucket.get_key(filename)
+
+    title = key.get_metadata('title').encode('utf-8')
+    new_title = ask_user_for_title(title)
+
+    if new_title == title:
+        sys.exit("Nothing to do.")
+
+    # update image metadata
+    key.set_remote_metadata({'x-amz-meta-title': urllib.quote(new_title)}, (),
+                            preserve_acl=True)
+
+    return new_title
+
+
+def copy_to_clipboard(text):
+    """
+    Copy text to OS X clipboard.
+    """
+    process = subprocess.Popen('pbcopy', env={'LANG': 'en_US.UTF-8'},
+                               stdin=subprocess.PIPE)
+    process.communicate(text.encode('utf-8'))
+
+
+def notify_user(title, message, subtitle=None, icon=None, image=None,
+                onclick=None):
+    """
+    Show OS X system notify.
+    """
+    cmd = ['/usr/local/bin/terminal-notifier',
+           '-title', title, '-message', message, '-sound', '"default"']
+    if subtitle is not None:
+        cmd.extend(['-subtitle', subtitle])
+    if icon is not None:
+        cmd.extend(['-appIcon', icon])
+    if image is not None:
+        cmd.extend(['-contentImage', image])
+    if onclick is not None:
+        cmd.extend(['-open', onclick])
+
+    subprocess.call(cmd)
+
+
+def save_info_to_file(image_file, filename, url):
+    """
+    Save info about last screenshot to temporary file.
+    """
+    try:
+        with open(TEMP_FILE, 'wb') as tmp:
+            pickle.dump((image_file, filename, url), tmp)
+    except IOError:
+        sys.exit("ERROR: can't save info about last screenshot")
+
+
+def load_info_from_file():
+    """
+    Save info about last screenshot to temporary file.
+    """
+    try:
+        with open(TEMP_FILE, 'rb') as tmp:
+            return pickle.load(tmp)
+    except IOError:
+        sys.exit("ERROR: can't load info about last screenshot")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Screenshot uploader')
+    parser.add_argument('-c', '--config', default='/usr/local/etc/scrst.cfg',
+                        help='config file, default: /usr/local/etc/scrst.cfg')
+    parser.add_argument('-s', '--setup', action='store_true',
+                        help='run interactive setup')
+    parser.add_argument('-a', '--ask-title', action='store_true',
+                        help='ask user for screenshot title before upload')
+    parser.add_argument('-t', '--title', help='screenshot title')
+    parser.add_argument('-r', '--rename-last-screenshot', action='store_true',
+                        help='rename last uploaded screenshot')
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        help='do not show OS X notify')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose output')
+    parser.add_argument('image_file', nargs='?')
+    args = parser.parse_args()
+
+    if args.setup:
+        setup(args.config)
+        sys.exit()
+
+    config = parse_config(args.config)
+
+    if args.rename_last_screenshot:
+        image_file, filename, url = load_info_from_file()
+        try:
+            image_title = update_image_title(filename, config)
+        except (BotoClientError, BotoServerError):
+            sys.exit("ERROR: can't connect to AWS;"
+                     " please, check access key settings")
+        if args.verbose:
+            print("Image title is updated to '{0}'".format(image_title))
+
+    else:
+        image_file = take_screenshot(args.image_file)
+        if args.verbose:
+            print("Use screenshot from file {0}".format(image_file))
+
+        image_meta = get_image_meta(image_file)
+        if args.verbose:
+            print("Image meta:")
+            for param, value in image_meta.items():
+                print("- {0}: {1}".format(param, value))
+
+        try:
+            filename, image_title = upload_image(image_file, image_meta, args,
+                                                 config)
+        except (BotoClientError, BotoServerError):
+            sys.exit("ERROR: can't connect to AWS;"
+                     " please, check access key settings")
+
+        if args.verbose:
+            print("Uploaded image filename: {0}".format(filename))
+            print("Set image title to '{0}'".format(image_title))
+
+        if config['keep_extension']:
+            url_filename = filename
+        else:
+            url_filename = filename[:-4]
+
+        url = '{0}{1}'.format(config['url'], url_filename)
+        if args.verbose:
+            print("Uploaded image url: {0}".format(url))
+
+    copy_to_clipboard(url)
+
+    if args.rename_last_screenshot:
+        title = "Screenshot title updated:"
+    elif args.image_file:
+        title = "File uploaded:"
+    else:
+        title = "Screenshot uploaded:"
+
+    if image_title == filename:
+        message = ''
+    else:
+        message = image_title
+
+    if not args.quiet:
+        notify_user(title, message, subtitle=url, image=image_file,
+                    onclick=url)
+
+    save_info_to_file(image_file, filename, url)
+
+    if not args.verbose:
+        print("{0} {1}".format(title, url))

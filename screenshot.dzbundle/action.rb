@@ -1,9 +1,9 @@
 # Dropzone Action Info
-# Name: S5
+# Name: ScrSt
 # Description: Upload image as screenshot
 # Handles: Files
 # Creator: Vladimir Rudnyh
-# URL: https://github.com/dreadatour/s5
+# URL: https://github.com/dreadatour/scrst
 # Events: Dragged, Clicked
 # KeyModifiers: No
 # SkipConfig: No
@@ -15,7 +15,7 @@ def dragged
   $dz.determinate(true)
   $dz.percent(0)
 
-  result = system('/usr/local/bin/s5', $items[0])
+  result = system('/usr/local/bin/scrst', $items[0])
   if result.nil?
     $dz.fail("Error uploading image #{$?}")
   end
@@ -28,7 +28,7 @@ def clicked
   $dz.determinate(true)
   $dz.percent(0)
 
-  result = system('/usr/local/bin/s5')
+  result = system('/usr/local/bin/scrst')
   if result.nil?
       $dz.fail("Error uploading image #{$?}")
   end

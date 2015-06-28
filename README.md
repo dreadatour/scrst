@@ -1,90 +1,177 @@
-## S5 (Amazon Simple Storage Service ScreenShots)
+## ScrSt (ScreenShots)
 
 Аплоад скриншотов в Amazon S3 и красивое отображение их на странице.
 
-Just for fun (проект выходного дня).
+
+### Зачем это всё?
+
+1. На данный момент времени (июнь 2015) предлагаемый скрипт - единственный способ обмениться скриншотами, сделанными на макбуках с ретиной, с нормальным отображением полученных изображений как на обычных экранах, так и на ретине.
+
+2. Кроме того, здесь нет никакой рекламы, а в браузере не отображается ничего, кроме сделанного скриншота - никаких лишних панелей на полэкрана, никакой бесполезной информации.
+
+3. Ещё скрипт умеет Open Graph и полученный скриншот нормально отображается, например, в Facebook или Slack. Имеется возможность задать любое название полученному скриншоту.
 
 
-### Настраиваем отправку скриншотов
+### Минусы, подводные камни
+
+1. Нет аннотаций скриншотов с помощью стрелок, подписей и прочей графики. Пока нет.
+
+2. Нужен аккаунт в Amazon S3 и хостинг для запуска фронтенда для отображения скриншотов.
+
+3. Всё. Остальное - сплошной профит!
+
+
+### Установка
 
 1. Ставим зависимости:
 
-		brew install s3cmd terminal-notifier
+		brew install terminal-notifier
+		pip install boto pillow
 
-2. Ставим скрипт для отправки скриншотов:
+2. Скачиваем и распаковываем программу: https://github.com/dreadatour/scrst/archive/master.zip
 
-		wget -O /usr/local/bin/s5 https://raw.githubusercontent.com/dreadatour/s5/master/bin/s5
-		chmox +x /usr/local/bin/s5
+3. Ставим скрипт для отправки скриншотов:
 
-3. Прописываем в конфиг (/usr/local/etc/s5.conf) правильные параметры:
+		cp bin/scrst /usr/local/bin/scrst
+		chmox +x /usr/local/bin/scrst
 
-		AWS_S3_BUCKET_NAME='Your Amazon S3 bucket name'
-		AWS_ACCESS_KEY_ID='Your Amazon S3 access key ID'
-		AWS_SECRET_ACCESS_KEY='Your Amazon S3 secret access key'
-		S5_URL='Your S5 installation domain name'
+4. Настраиваем:
 
-4. Пробуем запустить:
+		➜ /usr/local/bin/scrst --setup
+		Amazon S3 configuration
+		-----------------------
+		Access key ID: BURD4JFDIW19HU2CGHN6
+		Secret access key: Edj3LXlBnyStd0A6LVEwQzeCAwyDjzDCkiWVyTgr
+		Bucket name: scrst
 
-		/usr/local/bin/s5
+		ScrSt configuration
+		-------------------
+		Enter URL for uploaded screenshots: http://scr.st/
+		Use long names for taken screenshots (true/false): false
+		Keep file extension un result URL (true/false): false
 
-	Выделяем область экрана. Скриншот должен залиться на сервер AWS S3 и должен появиться нотифай об успешно загруженном скриншоте:
+	При необходимости настройки можно изменить в файле `/usr/local/etc/scrst.cfg`.
 
-	![Notify](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/notify.png)
+5. Устанавливаем системные сервисы для запуска скрипта с помощью горячих клавиш. Для этого открываем в `Finder` папку `services` из скачанного архива и на каждом из сервисов делаем двойной клик и нажимаем <kbd>Установить</kbd> в появившемся окне:
 
+	![Install service](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/service-install.png)
 
-### Создаём сервис и назначаем горячие клавиши
+	После установки всех сервисов переходим в настройки клавиатуры и настраиваем горячие кнопки для вызова скрипта:
 
-1. Запускаем Automator.
+	![Setup shortcuts](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/setup-shortcuts.png)
 
-2. Выбираем шаблон "Service":
+6. Для того, чтобы добавить действие по загрузке файла через [Dropzone 3](https://aptonic.com/dropzone3/) нужно сделать двойной клик на `screenshot.dzbundle` в скачанной папке:
 
-	![Template](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/choose-template.png)
-
-3. Добавляем действие "Run Shell Script":
-
-	![Add action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/add-action.png)
-
-4. Создаём действие:
-
-	![Create action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/create-action.png)
-
-5. Сохраняем:
-
-	![Save action](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/save-action.png)
-
-6. Назначаем сочетание клавиш:
-
-	![Shortcut](https://raw.githubusercontent.com/dreadatour/s5/master/screenshots/set-shortcut.png)
-
-7. Готово. Нажимаем Cmd+Shift+5 - делаем скриншот, который загружается в AWS S3.
+	![Setup dropzone action](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/dropzone.png)
 
 
-### Добавляем действие в Dropzone 3
+### Использование
 
-1. Ставим https://aptonic.com/dropzone3/
-2. Устанавливаем действие двойным кликом по "screenshot.dzbundle".
-3. Готово. Теперь можно перетаскивать любые картинки картинки в Dropzone.
+0. Параметры командной строки скрипта для загрузки скриншотов:
+
+		➜ /usr/local/bin/scrst --help
+		usage: scrst [-h] [-c CONFIG] [-s] [-a] [-t TITLE] [-r] [-q] [-v] [image_file]
+
+		Screenshot uploader
+
+		positional arguments:
+		  image_file
+
+		optional arguments:
+		  -h, --help            show this help message and exit
+		  -c CONFIG, --config CONFIG
+		                        config file, default: /usr/local/etc/scrst.cfg
+		  -s, --setup           run interactive setup
+		  -a, --ask-title       ask user for screenshot title before upload
+		  -t TITLE, --title TITLE
+		                        screenshot title
+		  -r, --rename-last-screenshot
+		                        rename last uploaded screenshot
+		  -q, --quiet           do not show OS X notify
+		  -v, --verbose         verbose output
+
+1. Пробуем запустить без параметров:
+
+		/usr/local/bin/scrst
+
+	Или нажимаем сочетание клавиш <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>5</kbd>.
+
+	Выделяем область экрана. Скриншот загрузится на сервер AWS S3 и появится нотифай об успешно загруженном файле:
+
+	![Notify](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/notify.png)
+
+	Если кликнуть по нотифаю - в браузере откроется страница с загруженным скриншотом. Ссылка на эту страницу будет скопирована в буфер обмена.
+
+	В консоли будет выведена информация о загруженном скриншоте:
+
+		➜ /usr/local/bin/scrst
+		Screenshot uploaded: http://scr.st/yfcmt1
+
+2. Для того, чтобы задать название загруженному файлу, добавляем параметр `--ask-title`:
+
+		/usr/local/bin/scrst --ask-title
+
+	Или нажимаем сочетание клавиш <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>5</kbd>.
+
+	Выделяем область экрана. Появится окно с предложением ввести название для снятого скриншота:
+
+	![Enter title](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/title-enter.png)
+
+	После нажатия на кнопку <kbd>OK</kbd> будет показан нотифай об успешно загруженном файле:
+
+	![Notify with title](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/notify-title.png)
+
+3. Для того, чтобы переименовать последний загруженный скриншот, добавляем параметр `--rename-last-screenshot`:
+
+		/usr/local/bin/scrst --rename-last-screenshot
+
+	Или нажимаем сочетание клавиш <kbd>Cmd</kbd>+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>5</kbd>.
+
+	Появится окно с предложением изменить название последнего загруженного скриншота:
+
+	![Edit title](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/title-edit.png)
+
+	После нажатия на кнопку <kbd>OK</kbd> будет показан нотифай об успешно изменённом названии:
+
+	![Notify with title edited](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/notify-title-edit.png)
+
+4. Для загрузки существующего файла без уведомлений о загрузке с указанием названия, добавляем параметры `--quiet` и `--title` и указываем имя файла, который нужно загрузить:
+
+		➜ /usr/local/bin/scrst --quiet --title "Киска" ~/Desktop/image.png
+		File uploaded: http://scr.st/GdrN36
+
+5. Если установлен Dropzone и действие для него, можно просто перетащить любую картинку на иконку "Scr.st" в окне Dropzone:
+
+	![Dropzone window](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/dropzone-window.png)
+
+	И она автоматичеки будет загружена.
 
 
 ### Запускаем фронтенд для отображения скриншотов
 
 1. Клонируем репозиторий:
 
-		git clone git@github.com:dreadatour/s5.git
-        cd s5
+		git clone git@github.com:dreadatour/scrst.git
+        cd scrst
 
 2. Создаём virtualenv:
 
-        mkvirtualenv s5
+        mkvirtualenv scrst
 
 3. Ставим зависимости:
 
         pip install -r requirements.txt
 
-4. Запускаем:
+4. Создаём и редактируем конфиг (задаём название bucket в Amazon S3):
 
-        python s5.py
+		cp config.py-dist config.py
+		vim config.py
 
-5. Открываем в браузере: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
-6. ...
-7. Profit!
+5. Запускаем:
+
+        python app.py
+
+6. Открываем в браузере: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+7. Открываем закачанный скриншот, например: [http://127.0.0.1:5000/LUzCJo](http://127.0.0.1:5000/LUzCJo) (где `LUzCJo.png` - название файла, сгенерированного скриптом scrst).
+8. ...
+9. Profit!

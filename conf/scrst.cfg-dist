@@ -1,0 +1,9 @@
+[aws]
+s3_bucket_name: Your Amazon S3 bucket name
+access_key_id: Your Amazon S3 access key ID
+secret_access_key: Your Amazon S3 secret access key
+
+[scrst]
+url: Your S5 installation domain name
+long_names: false
+keep_extension: true

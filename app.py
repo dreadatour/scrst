@@ -1,5 +1,6 @@
 # coding: utf-8
 import httplib
+import urllib
 
 from flask import Flask, abort, render_template
 
@@ -46,8 +47,8 @@ def screenshot(filename):
     headers = dict(response.getheaders())
     img_width = headers.get('x-amz-meta-width')
     img_height = headers.get('x-amz-meta-height')
-
     img_title = headers.get('x-amz-meta-title', filename)
+    img_title = urllib.unquote(img_title).decode('utf-8')
 
     return render_template(
         'screenshot.html',
