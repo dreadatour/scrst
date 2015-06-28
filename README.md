@@ -173,3 +173,5 @@
 7. Открываем закачанный скриншот, например: [http://127.0.0.1:5000/LUzCJo](http://127.0.0.1:5000/LUzCJo) (где `LUzCJo.png` - название файла, сгенерированного скриптом scrst).
 8. ...
 9. Profit!
+
+	![Browser window](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/browser.png)
