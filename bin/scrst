@@ -274,6 +274,11 @@ def notify_user(title, message, subtitle=None, icon=None, image=None,
     """
     Show OS X system notify.
     """
+    if not os.path.isfile('/usr/local/bin/terminal-notifier'):
+        print("WARNING: terminal-notifier is not installed")
+        print("         please, run `brew install terminal-notifier`")
+        return
+
     cmd = ['/usr/local/bin/terminal-notifier',
            '-title', title, '-message', message, '-sound', '"default"']
     if subtitle is not None:

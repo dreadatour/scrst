@@ -5,6 +5,7 @@ class Scrst < Formula
   sha256 "8979bf43d7f88557a631297220c7029dc2d122edc98ff9c280a8bed69bdd6b3a"
   head "https://github.com/dreadatour/scrst.git", :branch => "master"
 
+  depends_on "terminal-notifier" => :recommended
   depends_on :python if MacOS.version <= :snow_leopard
 
   resource "pillow" do
