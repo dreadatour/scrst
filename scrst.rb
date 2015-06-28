@@ -1,8 +1,8 @@
 class Scrst < Formula
   homepage "https://github.com/dreadatour/scrst"
-  url "https://github.com/dreadatour/scrst/archive/1.0.1.tar.gz"
-  version "1.0.1"
-  sha256 "8979bf43d7f88557a631297220c7029dc2d122edc98ff9c280a8bed69bdd6b3a"
+  url "https://github.com/dreadatour/scrst/archive/1.0.2.tar.gz"
+  version "1.0.2"
+  sha256 "91d4e8e5cf42c052fdf8830b638003a32172e475493ecd6d7d66d837f8eb6a25"
   head "https://github.com/dreadatour/scrst.git", :branch => "master"
 
   depends_on "terminal-notifier" => :recommended
