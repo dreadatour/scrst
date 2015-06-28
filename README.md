@@ -152,7 +152,7 @@
 1. Клонируем репозиторий:
 
 		git clone git@github.com:dreadatour/scrst.git
-        cd scrst
+        cd scrst/frontend
 
 2. Создаём virtualenv:
 
