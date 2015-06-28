@@ -11,6 +11,8 @@
 
 3. Ещё скрипт умеет Open Graph и полученный скриншот нормально отображается, например, в Facebook или Slack. Имеется возможность задать любое название полученному скриншоту.
 
+4. Just for fun (проект выходного дня).
+
 
 ### Минусы, подводные камни
 
@@ -23,19 +25,11 @@
 
 ### Установка
 
-1. Ставим зависимости:
+1. Ставим скрипт:
 
-		brew install terminal-notifier
-		pip install boto pillow
+		brew install dreadatour/scrst/scrst
 
-2. Скачиваем и распаковываем программу: https://github.com/dreadatour/scrst/archive/master.zip
-
-3. Ставим скрипт для отправки скриншотов:
-
-		cp bin/scrst /usr/local/bin/scrst
-		chmox +x /usr/local/bin/scrst
-
-4. Настраиваем:
+2. Настраиваем:
 
 		➜ /usr/local/bin/scrst --setup
 		Amazon S3 configuration
@@ -52,7 +46,11 @@
 
 	При необходимости настройки можно изменить в файле `/usr/local/etc/scrst.cfg`.
 
-5. Устанавливаем системные сервисы для запуска скрипта с помощью горячих клавиш. Для этого открываем в `Finder` папку `services` из скачанного архива и на каждом из сервисов делаем двойной клик и нажимаем <kbd>Установить</kbd> в появившемся окне:
+	По идее, всё уже работает, но если нужна интеграция с OS X (горячие кнопки) и Dropzone - читаем дальше.
+
+3. Скачиваем и распаковываем архив с программой: https://github.com/dreadatour/scrst/archive/master.zip
+
+4. Устанавливаем системные сервисы для запуска скрипта с помощью горячих клавиш. Для этого открываем в `Finder` папку `services` из скачанного архива и на каждом из сервисов делаем двойной клик и нажимаем <kbd>Установить</kbd> в появившемся окне:
 
 	![Install service](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/service-install.png)
 
@@ -60,7 +58,7 @@
 
 	![Setup shortcuts](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/setup-shortcuts.png)
 
-6. Для того, чтобы добавить действие по загрузке файла через [Dropzone 3](https://aptonic.com/dropzone3/) нужно сделать двойной клик на `screenshot.dzbundle` в скачанной папке:
+5. Для того, чтобы добавить действие по загрузке файла через [Dropzone 3](https://aptonic.com/dropzone3/) нужно сделать двойной клик на `screenshot.dzbundle` в скачанной папке:
 
 	![Setup dropzone action](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/dropzone.png)
 
