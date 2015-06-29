@@ -27,7 +27,7 @@
 
 1. Ставим скрипт:
 
-		brew install dreadatour/scrst/scrst
+		brew install dreadatour/formulas/scrst
 
 2. Настраиваем:
 
