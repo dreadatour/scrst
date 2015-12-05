@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-"""
-Upload screenshot to AWS S3.
-"""
+
+"""Upload screenshot to AWS S3."""
+
 from __future__ import print_function
 
 import argparse
 import os
 import pickle
 import random
+import shutil
 import string
 import subprocess
 import sys
@@ -31,10 +32,78 @@ from PIL import Image
 TEMP_FILE = '/var/tmp/scrst-last-uploaded-screenshot'
 
 
-def setup(filename):
-    """
-    Ask user for configuration and save it into config file.
-    """
+def temporary_copy(orig_path):
+    """Create temporary copy of given directory."""
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, os.path.basename(orig_path))
+
+    if os.path.exists(temp_path):
+        shutil.rmtree(temp_path)
+    shutil.copytree(orig_path, temp_path)
+
+    return temp_path
+
+
+def install_osx_services():
+    """Install OS X services for screenshot capture."""
+    services_path = '/usr/local/opt/scrst/services'
+    services_names = (
+        'Create screenshot and upload',
+        'Create screenshot with title and upload',
+        'Rename last uploaded screenshot',
+    )
+
+    for service_name in services_names:
+        print("  Install service '{0}'.".format(service_name))
+
+        service_temp_path = temporary_copy(
+            "{0}/{1}.workflow".format(services_path, service_name)
+        )
+        proc = subprocess.Popen(['open', service_temp_path])
+        proc.wait()
+
+        raw_input("    Press Enter to continue...")
+
+        if os.path.exists(service_temp_path):
+            shutil.rmtree(service_temp_path)
+
+
+def check_dropzone_installed():
+    """Check if Dropzone 3 is installed."""
+    cmd = """try
+    tell application "Finder"
+    set appname to name of application file id "com.aptonic.Dropzone3"
+    return 1
+    end tell
+    on error err_msg number err_num
+    return 0
+    end try"""
+
+    proc = subprocess.Popen(['osascript', '-e', cmd], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    proc.wait()
+
+    return proc.communicate()[0].strip() == '1'
+
+
+def install_dropzone_action():
+    """Install Dropzone 3 action for image upload."""
+    print("  Install Dropzone 3 action.")
+
+    action_path = '/usr/local/opt/scrst/screenshot.dzbundle'
+    subprocess.call(['open', action_path])
+
+
+def input_yes_no(message):
+    """Ask user for 'yes' or 'no' input and return boolean aswer."""
+    answer = None
+    while answer not in ('y', 'yes', 'n', 'no'):
+        answer = raw_input("{0} (yes/no) ".format(message)).lower()
+    return answer in ('y', 'yes')
+
+
+def setup_config(filename):
+    """Ask user for configuration and save it into config file."""
     print("Amazon S3 configuration")
     print("-----------------------")
     aws = {}
@@ -48,15 +117,15 @@ def setup(filename):
     scrst = {}
     scrst['url'] = raw_input("Enter URL for uploaded screenshots: ")
 
-    while scrst.get('long_names') not in ('true', 'false'):
-        scrst['long_names'] = raw_input(
-            "Use long names for taken screenshots (true/false): "
-        ).lower()
+    if input_yes_no("Use long names for taken screenshots?"):
+        scrst['long_names'] = 'true'
+    else:
+        scrst['long_names'] = 'false'
 
-    while scrst.get('keep_extension') not in ('true', 'false'):
-        scrst['keep_extension'] = raw_input(
-            "Keep file extension un result URL (true/false): "
-        ).lower()
+    if input_yes_no("Keep file extension in result URL?"):
+        scrst['keep_extension'] = 'true'
+    else:
+        scrst['keep_extension'] = 'false'
 
     config = configparser.ConfigParser()
 
@@ -75,10 +144,27 @@ def setup(filename):
         sys.exit("ERROR: can't write config to file {0}".format(filename))
 
 
+def setup(filename):
+    """Setup ScrSt."""
+    if os.path.exists(filename):
+        print("Config file '{0}' already exists.".format(filename))
+        if input_yes_no("Do you want to overwrite it?"):
+            setup_config(filename)
+    else:
+        setup_config(filename)
+
+    if input_yes_no("Do you want to install OS X services?"):
+        install_osx_services()
+
+    if check_dropzone_installed():
+        if input_yes_no("Do you want to install Dropzone 3 action?"):
+            install_dropzone_action()
+    else:
+        print("Dropzone 3 is not found, skip install Dropzone 3 action.")
+
+
 def parse_config(filename):
-    """
-    Parse config file.
-    """
+    """Parse config file."""
     if not os.path.isfile(filename):
         sys.exit("ERROR: config file {0} id not found".format(filename))
 
@@ -131,8 +217,9 @@ def parse_config(filename):
 
 
 def take_screenshot(image_file=None):
-    """
-    Check if image_file is exists, create new and take a screenshot if not.
+    """Take screenshot and returns image file.
+
+    If `image_file` is set, will check if it is exists.
     """
     if not image_file:
         # this is not very very supersafe, but why not?
@@ -150,9 +237,7 @@ def take_screenshot(image_file=None):
 
 
 def get_image_meta(image_file):
-    """
-    Read metadata (width, height, DPI) from image file.
-    """
+    """Read metadata (width, height, DPI) from image file."""
     image = Image.open(image_file)
 
     result = {}
@@ -173,9 +258,7 @@ def get_image_meta(image_file):
 
 
 def ask_user_for_title(default_title=''):
-    """
-    Ask user for screenshot title with Apple Script display dialog.
-    """
+    """Ask user for screenshot title with Apple Script display dialog."""
     dialog_text = 'Enter screenshot new title:'
     cmd = """try
     tell app "SystemUIServer"
@@ -193,9 +276,7 @@ def ask_user_for_title(default_title=''):
 
 
 def random_filename(long_name=False):
-    """
-    Generate random filename with `symbols` length.
-    """
+    """Generate random filename with `symbols` length."""
     if long_name:
         filename = uuid.uuid4()
     else:
@@ -205,9 +286,7 @@ def random_filename(long_name=False):
 
 
 def upload_image(image_file, image_meta, args, config):
-    """
-    Upload image to AWS S3.
-    """
+    """Upload image to AWS S3."""
     conn = S3Connection(config['access_key_id'], config['secret_access_key'])
     bucket = Bucket(connection=conn, name=config['s3_bucket_name'])
 
@@ -240,9 +319,7 @@ def upload_image(image_file, image_meta, args, config):
 
 
 def update_image_title(filename, config):
-    """
-    Update image title in AWS S3.
-    """
+    """Update image title in AWS S3."""
     conn = S3Connection(config['access_key_id'], config['secret_access_key'])
     bucket = Bucket(connection=conn, name=config['s3_bucket_name'])
     key = bucket.get_key(filename)
@@ -261,9 +338,7 @@ def update_image_title(filename, config):
 
 
 def copy_to_clipboard(text):
-    """
-    Copy text to OS X clipboard.
-    """
+    """Copy text to OS X clipboard."""
     process = subprocess.Popen('pbcopy', env={'LANG': 'en_US.UTF-8'},
                                stdin=subprocess.PIPE)
     process.communicate(text.encode('utf-8'))
@@ -271,9 +346,7 @@ def copy_to_clipboard(text):
 
 def notify_user(title, message, subtitle=None, icon=None, image=None,
                 onclick=None):
-    """
-    Show OS X system notify.
-    """
+    """Show OS X system notify."""
     if not os.path.isfile('/usr/local/bin/terminal-notifier'):
         print("WARNING: terminal-notifier is not installed")
         print("         please, run `brew install terminal-notifier`")
@@ -294,9 +367,7 @@ def notify_user(title, message, subtitle=None, icon=None, image=None,
 
 
 def save_info_to_file(image_file, filename, url):
-    """
-    Save info about last screenshot to temporary file.
-    """
+    """Save info about last screenshot to temporary file."""
     try:
         with open(TEMP_FILE, 'wb') as tmp:
             pickle.dump((image_file, filename, url), tmp)
@@ -305,9 +376,7 @@ def save_info_to_file(image_file, filename, url):
 
 
 def load_info_from_file():
-    """
-    Save info about last screenshot to temporary file.
-    """
+    """Save info about last screenshot to temporary file."""
     try:
         with open(TEMP_FILE, 'rb') as tmp:
             return pickle.load(tmp)
@@ -319,7 +388,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Screenshot uploader.')
     parser.add_argument('-c', '--config', default='/usr/local/etc/scrst.cfg',
                         help='config file, default: /usr/local/etc/scrst.cfg')
-    parser.add_argument('-s', '--setup', action='store_true',
+    parser.add_argument('--setup', action='store_true',
                         help='run interactive setup')
     parser.add_argument('-a', '--ask-title', action='store_true',
                         help='ask user for screenshot title before upload')

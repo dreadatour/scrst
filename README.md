@@ -42,26 +42,23 @@
 		ScrSt configuration
 		-------------------
 		Enter URL for uploaded screenshots: http://scr.st/
-		Use long names for taken screenshots (true/false): false
-		Keep file extension un result URL (true/false): false
+		Use long names for taken screenshots? (yes/no) no
+		Keep file extension un result URL? (yes/no) no
+		Do you want to install OS X services? (yes/no) yes
+		  Install service 'Create screenshot and upload'.
+		    Press Enter to continue...
+		  Install service 'Create screenshot with title and upload'.
+		    Press Enter to continue...
+		  Install service 'Rename last uploaded screenshot'.
+		    Press Enter to continue...
+		Do you want to install Dropzone 3 action? (yes/no) yes
+		  Install Dropzone 3 action.
 
 	При необходимости настройки можно изменить в файле `/usr/local/etc/scrst.cfg`.
 
-	По идее, всё уже работает, но если нужна интеграция с OS X (горячие кнопки) и Dropzone - читаем дальше.
-
-3. Скачиваем и распаковываем архив с программой: https://github.com/dreadatour/scrst/archive/master.zip
-
-4. Устанавливаем системные сервисы для запуска скрипта с помощью горячих клавиш. Для этого открываем в `Finder` папку `services` из скачанного архива и на каждом из сервисов делаем двойной клик и нажимаем <kbd>Установить</kbd> в появившемся окне:
-
-	![Install service](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/service-install.png)
-
-	После установки всех сервисов переходим в настройки клавиатуры и настраиваем горячие кнопки для вызова скрипта:
+3. После установки сервисов переходим в настройки клавиатуры и настраиваем горячие кнопки для вызова скрипта:
 
 	![Setup shortcuts](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/setup-shortcuts.png)
-
-5. Для того, чтобы добавить действие по загрузке файла через [Dropzone 3](https://aptonic.com/dropzone3/) нужно сделать двойной клик на `screenshot.dzbundle` в скачанной папке:
-
-	![Setup dropzone action](https://raw.githubusercontent.com/dreadatour/scrst/master/screenshots/dropzone.png)
 
 
 ### Использование
@@ -80,7 +77,7 @@
 		  -h, --help            show this help message and exit
 		  -c CONFIG, --config CONFIG
 		                        config file, default: /usr/local/etc/scrst.cfg
-		  -s, --setup           run interactive setup
+		  --setup               run interactive setup
 		  -a, --ask-title       ask user for screenshot title before upload
 		  -t TITLE, --title TITLE
 		                        screenshot title
