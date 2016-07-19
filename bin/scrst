@@ -225,10 +225,11 @@ def take_screenshot(image_file=None):
         # this is not very very supersafe, but why not?
         image_file = tempfile.mktemp(prefix='scrst-', suffix='.png')
 
-        subprocess.call(['screencapture', '-i', image_file])
+        exit_code = subprocess.call('screencapture -i {0}'.format(image_file), shell=True)
 
-        if not os.path.isfile(image_file):
-            sys.exit("Screenshot capture was cancelled")
+        if exit_code or not os.path.isfile(image_file):
+            print("Screenshot capture was cancelled")
+            sys.exit(0)
     else:
         if not os.path.isfile(image_file):
             sys.exit("ERROR: image file {0} is not found".format(image_file))
